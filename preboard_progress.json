@@ -1,0 +1,51 @@
+{
+  "English Core": {
+    "The Last Lesson": true,
+    "Lost Spring": true,
+    "Deep Water": true,
+    "The Rattrap": true,
+    "My Mother at Sixty-Six": true,
+    "Keeping Quiet": true,
+    "A Roadside Stand": true,
+    "The Third Level": true,
+    "The Tiger King": true,
+    "The Enemy": true,
+    "Reading Comprehension": true,
+    "Notice Writing": true,
+    "Article and Report Writing": true
+  },
+  "Physics": {
+    "Electric Charges and Fields": true,
+    "Electrostatic Potential and Capacitance": true,
+    "Current Electricity": true,
+    "Magnetism and Matter": true,
+    "Electromagnetic Induction": true,
+    "Alternating Current": true
+  },
+  "Chemistry": {
+    "Solutions": true,
+    "Electrochemistry": true,
+    "Chemical Kinetics": true,
+    "Haloalkanes and Haloarenes": true,
+    "Alcohols, Phenols and Ethers": true
+  },
+  "Mathematics": {
+    "Relations and Functions": true,
+    "Inverse Trigonometric Functions": true,
+    "Matrices": true,
+    "Determinants": true,
+    "Continuity and Differentiability": true,
+    "Integrals": true,
+    "Applications of Integrals": false
+  },
+  "Computer Science": {
+    "Python Revision": true,
+    "Exception Handling": true,
+    "Text File Handling": false,
+    "Binary File Handling": false,
+    "CSV File Handling": false,
+    "Stack Data Structure": true,
+    "Computer Networks": false,
+    "Network Devices, Protocols and Web Services": false
+  }
+}
