@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>PRE//BOARD — Progress Tracker</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0a0a0a; --panel: #111411; --row: #0d0f0d;
+      --hover: #152015; --line: #1e2b1e; --text: #d7e6d9;
+      --muted: #718273; --green: #39d96b; --green-dark: #1a7a36;
+      --red: #ff7777;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 14px/1.5 "Consolas", "SFMono-Regular", ui-monospace, monospace;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app { max-width: 1180px; margin: 0 auto; padding: 24px 20px 32px; }
+    header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:18px; }
+    .eyebrow { color: var(--muted); text-transform:uppercase; letter-spacing:.12em; font-size:11px; }
+    h1 { margin:2px 0 4px; color:var(--green); font-size:clamp(27px,5vw,38px); letter-spacing:-.05em; }
+    .sub { color:var(--muted); font-size:12px; }
+    .countdown { text-align:right; flex-shrink:0; }
+    .days { font-size:clamp(22px,4vw,30px); font-weight:800; }
+    .stripe { height:4px; background:var(--line); margin:16px 0; overflow:hidden; }
+    .stripe span { display:block; height:100%; width:0; background:var(--green); transition:width .2s; }
+    .panel, .subject-card, .section { background:var(--panel); border:1px solid var(--line); border-radius:12px; }
+    .panel { padding:16px; }
+    .total-top { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .label { color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.1em; }
+    .percent { color:var(--green); font-size:26px; font-weight:800; }
+    .bar { display:flex; gap:2px; overflow:hidden; white-space:nowrap; color:var(--green); font-size:13px; letter-spacing:-.12em; }
+    .detail { color:var(--muted); font-size:11px; margin-top:5px; }
+    .subjects { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; margin:10px 0 18px; }
+    .subject-card { padding:12px 10px; min-width:0; }
+    .subject-name { font-size:11px; font-weight:700; min-height:34px; overflow-wrap:anywhere; }
+    .subject-bar { color:var(--green); font-size:11px; white-space:nowrap; overflow:hidden; }
+    .subject-count { color:var(--muted); font-size:10px; }
+    .stream-panel { margin-top:10px; }
+    .stream-options { display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
+    .stream-options .chip { min-width:54px; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:16px 0 12px; }
+    .toolbar-label { color:var(--muted); font-size:10px; margin-right:2px; }
+    .chip, .action {
+      background:var(--panel); color:var(--muted); border:1px solid var(--line);
+      padding:7px 10px; border-radius:7px; font-size:11px;
+    }
+    .chip.active { background:var(--green); color:#061009; border-color:var(--green); font-weight:800; }
+    .spacer { flex:1; }
+    .action { color:var(--green); }
+    .action:hover, .chip:hover { border-color:var(--green); }
+    .save-status { color:var(--muted); font-size:11px; min-width:150px; }
+    .section { padding:12px; margin-bottom:10px; }
+    .section-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:2px 4px 9px; }
+    .section-head h2 { color:var(--green); font-size:12px; margin:0; letter-spacing:.04em; }
+    .section-count { color:var(--muted); font-size:10px; white-space:nowrap; }
+    .chapter {
+      display:flex; align-items:flex-start; gap:10px; padding:9px 8px;
+      border-radius:7px; background:var(--row); margin:4px 0; cursor:pointer;
+    }
+    .chapter:hover { background:var(--hover); }
+    .chapter input { appearance:none; flex:0 0 15px; width:15px; height:15px; margin:2px 0 0; border:1px solid #506653; border-radius:3px; background:#080a08; cursor:pointer; }
+    .chapter input:checked { background:var(--green); border-color:var(--green); }
+    .chapter input:checked::after { content:"✓"; display:block; color:#061009; font-weight:900; font-size:12px; line-height:13px; text-align:center; }
+    .chapter.done .chapter-name { color:var(--muted); text-decoration:line-through; }
+    .chapter-name { flex:1; overflow-wrap:anywhere; }
+    .empty { color:var(--muted); text-align:center; padding:30px 10px; }
+    .footer { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:14px; color:var(--muted); font-size:11px; }
+    .toggle { display:flex; align-items:center; gap:7px; }
+    .toggle input { accent-color:var(--green); }
+    .warning { color:#d5b17a; }
+    dialog { max-width:460px; width:calc(100% - 28px); border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); padding:20px; }
+    dialog::backdrop { background:#000b; }
+    dialog h3 { margin-top:0; }
+    dialog .dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+    @media(max-width:900px) {
+      .subjects { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    }
+    @media(max-width:760px) {
+      .app { padding:18px 12px 24px; }
+      header { gap:10px; }
+      .subjects { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .subject-card:last-child { grid-column:span 2; }
+      .countdown .eyebrow { font-size:9px; }
+      .days { font-size:21px; }
+      .save-status { order:5; width:100%; }
+    }
+    @media(prefers-reduced-motion:reduce) { * { transition:none!important; } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="eyebrow">Class XII / CBSE</div>
+      <h1>PRE//BOARD</h1>
+      <div class="sub">six subjects · one target · keep showing up</div>
+    </div>
+    <div class="countdown">
+      <div class="days" id="countdown">-- DAYS</div>
+      <div class="eyebrow">Exam · 16 Nov 2026</div>
+    </div>
+  </header>
+
+  <div class="stripe"><span id="stripeFill"></span></div>
+
+  <section class="panel" aria-label="Overall progress">
+    <div class="total-top">
+      <div class="label">TOTAL PROGRESS</div>
+      <div class="percent" id="overallPercent">0%</div>
+    </div>
+    <div class="bar" id="overallBar" aria-hidden="true"></div>
+    <div class="detail" id="overallDetail">0 / 83 tasks complete</div>
+  </section>
+
+  <section class="subjects" id="subjectCards" aria-label="Subject progress"></section>
+
+  <section class="panel stream-panel" aria-label="Choose your stream">
+    <div class="total-top">
+      <div>
+        <div class="label">YOUR SUBJECT COMBINATION</div>
+        <div class="detail">Common subjects stay visible. Choose your optional subjects.</div>
+      </div>
+      <div class="stream-options" id="streamOptions">
+        <button class="chip" data-stream="PCM">PCM</button>
+        <button class="chip" data-stream="PCB">PCB</button>
+        <button class="chip active" data-stream="PCMB">PCMB</button>
+      </div>
+    </div>
+    <div class="detail" id="streamDescription">Physics + Chemistry + Mathematics + Biology</div>
+  </section>
+
+  <div class="toolbar">
+    <span class="toolbar-label">SUBJECT</span>
+    <div id="subjectFilters"></div>
+    <span class="toolbar-label" style="margin-left:8px">STATUS</span>
+    <div id="statusFilters"></div>
+    <span class="spacer"></span>
+    <button class="action" id="saveNow">[ SAVE NOW ]</button>
+    <button class="action" id="exportBtn">[ EXPORT BACKUP ]</button>
+  </div>
+
+  <div id="saveStatus" class="save-status" role="status">Ready · progress is stored in this browser</div>
+  <main id="chapterList"></main>
+
+  <div class="footer">
+    <label class="toggle"><input type="checkbox" id="autosave" checked> AUTO-SAVE</label>
+    <span id="storageNote">Saved on this device/browser.</span>
+    <span class="spacer"></span>
+    <button class="action" id="importBtn">[ IMPORT BACKUP ]</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+    <button class="action" id="resetBtn" style="color:var(--red)">[ RESET ALL ]</button>
+  </div>
+</div>
+
+<dialog id="confirmDialog">
+  <h3 id="dialogTitle">Confirm action</h3>
+  <p id="dialogMessage"></p>
+  <div class="dialog-actions">
+    <button class="action" id="dialogCancel">Cancel</button>
+    <button class="action" id="dialogConfirm">Continue</button>
+  </div>
+</dialog>
+
+<script>
+const EXAM_DATE = new Date(2026, 10, 16);
+const SYLLABUS = {
+  "English Core": [
+    "The Last Lesson", "Lost Spring", "Deep Water", "The Rattrap", "Indigo",
+    "Poets and Pancakes", "The Interview", "Going Places",
+    "My Mother at Sixty-Six", "Keeping Quiet", "A Thing of Beauty",
+    "A Roadside Stand", "Aunt Jennifer's Tigers", "The Third Level",
+    "The Tiger King", "Journey to the End of the Earth", "The Enemy",
+    "On the Face of It", "Memories of Childhood", "Reading Comprehension",
+    "Notice Writing", "Invitations and Replies", "Letters: Editor / Job Application",
+    "Article and Report Writing"
+  ],
+  "Physics": [
+    "Electric Charges and Fields", "Electrostatic Potential and Capacitance",
+    "Current Electricity", "Moving Charges and Magnetism", "Magnetism and Matter",
+    "Electromagnetic Induction", "Alternating Current", "Electromagnetic Waves",
+    "Ray Optics and Optical Instruments", "Wave Optics",
+    "Dual Nature of Radiation and Matter", "Atoms", "Nuclei",
+    "Semiconductor Electronics"
+  ],
+  "Chemistry": [
+    "Solutions", "Electrochemistry", "Chemical Kinetics", "The d- and f-Block Elements",
+    "Coordination Compounds", "Haloalkanes and Haloarenes",
+    "Alcohols, Phenols and Ethers", "Aldehydes, Ketones and Carboxylic Acids",
+    "Amines", "Biomolecules"
+  ],
+  "Mathematics": [
+    "Relations and Functions", "Inverse Trigonometric Functions", "Matrices",
+    "Determinants", "Continuity and Differentiability", "Applications of Derivatives",
+    "Integrals", "Applications of Integrals", "Differential Equations",
+    "Vector Algebra", "Three-Dimensional Geometry", "Linear Programming", "Probability"
+  ],
+  "Computer Science": [
+    "Python Revision", "Functions", "Exception Handling", "Text File Handling",
+    "Binary File Handling", "CSV File Handling", "Stack Data Structure",
+    "Computer Networks", "Network Devices, Protocols and Web Services",
+    "Database Concepts", "SQL Queries and Functions", "Python-SQL Connectivity"
+  ],
+  "Biology": [
+    "Sexual Reproduction in Flowering Plants", "Human Reproduction",
+    "Reproductive Health", "Principles of Inheritance and Variation",
+    "Molecular Basis of Inheritance", "Evolution", "Human Health and Disease",
+    "Microbes in Human Welfare", "Biotechnology: Principles and Processes",
+    "Biotechnology and its Applications", "Organisms and Populations",
+    "Ecosystem", "Biodiversity and Conservation"
+  ]
+};
+const SHORT = {"English Core":"ENG","Physics":"PHY","Chemistry":"CHEM","Mathematics":"MATH","Computer Science":"CS","Biology":"BIO"};
+const INITIAL_PROGRESS = {"English Core":{"The Last Lesson":true,"Lost Spring":true,"Deep Water":true,"The Rattrap":true,"My Mother at Sixty-Six":true,"Keeping Quiet":true,"A Roadside Stand":true,"The Third Level":true,"The Tiger King":true,"The Enemy":true,"Reading Comprehension":true,"Notice Writing":true,"Article and Report Writing":true},"Physics":{"Electric Charges and Fields":true,"Electrostatic Potential and Capacitance":true,"Current Electricity":true,"Magnetism and Matter":true,"Electromagnetic Induction":true,"Alternating Current":true},"Chemistry":{"Solutions":true,"Electrochemistry":true,"Chemical Kinetics":true,"Haloalkanes and Haloarenes":true,"Alcohols, Phenols and Ethers":true},"Mathematics":{"Relations and Functions":true,"Inverse Trigonometric Functions":true,"Matrices":true,"Determinants":true,"Continuity and Differentiability":true,"Integrals":true,"Applications of Integrals":false},"Computer Science":{"Python Revision":true,"Exception Handling":true,"Text File Handling":false,"Binary File Handling":false,"CSV File Handling":false,"Stack Data Structure":true,"Computer Networks":false,"Network Devices, Protocols and Web Services":false},"Biology":{}};
+const STORE_KEY = "preboard-tracker-progress-v1";
+const AUTOSAVE_KEY = "preboard-tracker-autosave-v1";
+
+let progress = loadProgress();
+let autosave = localStorage.getItem(AUTOSAVE_KEY) !== "false";
+let dirty = false;
+let selectedSubject = "ALL";
+let selectedStatus = "ALL";
+let selectedStream = localStorage.getItem("preboard-tracker-stream-v1") || "PCMB";
+let pendingAction = null;
+
+function activeSubjects() {
+  const common = ["English Core", "Physics", "Chemistry", "Computer Science"];
+  if (selectedStream === "PCM") return [...common, "Mathematics"];
+  if (selectedStream === "PCB") return [...common, "Biology"];
+  return [...common, "Mathematics", "Biology"];
+}
+function setStream(stream) {
+  selectedStream = stream;
+  localStorage.setItem("preboard-tracker-stream-v1", stream);
+  if (selectedSubject !== "ALL" && !activeSubjects().includes(selectedSubject)) selectedSubject = "ALL";
+  renderStreamSelector();
+  renderFilters();
+  renderDashboard();
+  renderChapters();
+}
+function renderStreamSelector() {
+  document.querySelectorAll("[data-stream]").forEach(button => {
+    button.classList.toggle("active", button.dataset.stream === selectedStream);
+  });
+  document.getElementById("streamDescription").textContent = {
+    PCM: "Physics + Chemistry + Mathematics",
+    PCB: "Physics + Chemistry + Biology",
+    PCMB: "Physics + Chemistry + Mathematics + Biology"
+  }[selectedStream];
+}
+document.getElementById("streamOptions").addEventListener("click", event => {
+  const button = event.target.closest("[data-stream]");
+  if (button) setStream(button.dataset.stream);
+});
+
+function loadProgress() {
+  try {
+    const saved = localStorage.getItem(STORE_KEY);
+    const raw = JSON.parse(saved === null ? JSON.stringify(INITIAL_PROGRESS) : saved);
+    return raw && typeof raw === "object" ? raw : {};
+  } catch { return {}; }
+}
+function done(subject, chapter) { return Boolean(progress?.[subject]?.[chapter]); }
+function subjectStats(subject) {
+  const chapters = SYLLABUS[subject];
+  const count = chapters.filter(ch => done(subject, ch)).length;
+  return {count, total:chapters.length, pct:Math.round(count / chapters.length * 100)};
+}
+function allStats() {
+  const subjects = activeSubjects();
+  const total = subjects.reduce((sum, subject) => sum + SYLLABUS[subject].length, 0);
+  const count = subjects.reduce((sum, subject) => sum + subjectStats(subject).count, 0);
+  return {count,total,pct:Math.round(count / total * 100)};
+}
+function bar(pct, width=18) {
+  const filled = Math.round(pct / 100 * width);
+  return "█".repeat(filled) + "░".repeat(width-filled);
+}
+function setStatus(message, warning=false) {
+  const el = document.getElementById("saveStatus");
+  el.textContent = message;
+  el.classList.toggle("warning", warning);
+}
+function saveProgress(showMessage=true) {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(progress));
+    dirty = false;
+    if (showMessage) setStatus("✓ Saved in this browser");
+    return true;
+  } catch (err) {
+    setStatus("Save failed — export a backup or check browser storage.", true);
+    return false;
+  }
+}
+function changed() {
+  dirty = true;
+  if (autosave) saveProgress();
+  else setStatus("Unsaved changes — click SAVE NOW", true);
+}
+function renderDashboard() {
+  const all = allStats();
+  document.getElementById("overallPercent").textContent = all.pct + "%";
+  document.getElementById("overallBar").textContent = bar(all.pct, 38);
+  document.getElementById("overallDetail").textContent = `${all.count} / ${all.total} tasks complete`;
+  document.getElementById("stripeFill").style.width = all.pct + "%";
+  const cards = document.getElementById("subjectCards");
+  cards.innerHTML = "";
+  activeSubjects().forEach(subject => {
+    const s = subjectStats(subject);
+    const card = document.createElement("div");
+    card.className = "subject-card";
+    card.innerHTML = `<div class="subject-name"></div><div class="subject-bar"></div><div class="subject-count"></div>`;
+    card.querySelector(".subject-name").textContent = subject.toUpperCase();
+    card.querySelector(".subject-bar").textContent = bar(s.pct, 12);
+    card.querySelector(".subject-count").textContent = `${s.count}/${s.total} · ${s.pct}%`;
+    cards.appendChild(card);
+  });
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const days = Math.ceil((EXAM_DATE - today) / 86400000);
+  document.getElementById("countdown").textContent =
+    days > 1 ? `${days} DAYS` : days === 1 ? "01 DAY" : days === 0 ? "EXAM DAY" : "EXAM PASSED";
+}
+function addChips(containerId, options, current, callback) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  options.forEach(option => {
+    const button = document.createElement("button");
+    button.className = "chip" + (option.key === current ? " active" : "");
+    button.textContent = option.label;
+    button.addEventListener("click", () => callback(option.key));
+    container.appendChild(button);
+  });
+}
+function renderFilters() {
+  addChips("subjectFilters",
+    [{key:"ALL",label:"ALL"}, ...activeSubjects().map(s => ({key:s,label:SHORT[s] || "BIO"}))],
+    selectedSubject, key => { selectedSubject = key; renderFilters(); renderChapters(); });
+  addChips("statusFilters",
+    [{key:"ALL",label:"ALL"},{key:"TODO",label:"TODO"},{key:"DONE",label:"DONE"}],
+    selectedStatus, key => { selectedStatus = key; renderFilters(); renderChapters(); });
+}
+function renderChapters() {
+  const main = document.getElementById("chapterList");
+  main.innerHTML = "";
+  let visible = 0;
+  const subjects = selectedSubject === "ALL" ? activeSubjects() : [selectedSubject];
+  subjects.forEach(subject => {
+    const chapters = SYLLABUS[subject].filter(ch =>
+      selectedStatus === "ALL" ||
+      (selectedStatus === "DONE" && done(subject,ch)) ||
+      (selectedStatus === "TODO" && !done(subject,ch)));
+    if (!chapters.length) return;
+    visible += chapters.length;
+    const s = subjectStats(subject);
+    const section = document.createElement("section");
+    section.className = "section";
+    const head = document.createElement("div");
+    head.className = "section-head";
+    const title = document.createElement("h2");
+    title.textContent = subject.toUpperCase();
+    const count = document.createElement("span");
+    count.className = "section-count";
+    count.textContent = `${s.count}/${s.total} · ${s.pct}%`;
+    head.append(title,count);
+    section.appendChild(head);
+    chapters.forEach(chapter => {
+      const label = document.createElement("label");
+      label.className = "chapter" + (done(subject,chapter) ? " done" : "");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = done(subject,chapter);
+      checkbox.setAttribute("aria-label", `${chapter} completed`);
+      const name = document.createElement("span");
+      name.className = "chapter-name";
+      name.textContent = chapter;
+      checkbox.addEventListener("change", () => {
+        progress[subject] = progress[subject] || {};
+        progress[subject][chapter] = checkbox.checked;
+        changed();
+        renderDashboard();
+        if (selectedStatus !== "ALL") renderChapters();
+        else {
+          label.classList.toggle("done", checkbox.checked);
+          count.textContent = `${subjectStats(subject).count}/${subjectStats(subject).total} · ${subjectStats(subject).pct}%`;
+        }
+      });
+      label.append(checkbox,name);
+      section.appendChild(label);
+    });
+    main.appendChild(section);
+  });
+  if (!visible) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Nothing in this filter. Nice work.";
+    main.appendChild(empty);
+  }
+}
+function askConfirm(title, message, action) {
+  pendingAction = action;
+  document.getElementById("dialogTitle").textContent = title;
+  document.getElementById("dialogMessage").textContent = message;
+  document.getElementById("confirmDialog").showModal();
+}
+document.getElementById("dialogCancel").addEventListener("click", () => {
+  pendingAction = null;
+  document.getElementById("confirmDialog").close();
+});
+document.getElementById("dialogConfirm").addEventListener("click", () => {
+  const action = pendingAction;
+  pendingAction = null;
+  document.getElementById("confirmDialog").close();
+  if (action) action();
+});
+document.getElementById("saveNow").addEventListener("click", () => saveProgress());
+document.getElementById("autosave").checked = autosave;
+document.getElementById("autosave").addEventListener("change", event => {
+  autosave = event.target.checked;
+  localStorage.setItem(AUTOSAVE_KEY, String(autosave));
+  if (autosave && dirty) saveProgress();
+  else setStatus(autosave ? "✓ Auto-save is ON" : "Auto-save OFF — use SAVE NOW");
+});
+document.getElementById("resetBtn").addEventListener("click", () => {
+  askConfirm("Reset all progress?", "This clears all chapter checkmarks stored in this browser. Export a backup first if you may need it.", () => {
+    progress = {};
+    renderDashboard();
+    renderChapters();
+    changed();
+  });
+});
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(progress,null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "preboard_progress.json"; a.click();
+  URL.revokeObjectURL(url);
+  setStatus("Backup exported");
+});
+document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const incoming = JSON.parse(await file.text());
+    if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) throw new Error("Invalid backup format");
+    askConfirm("Import backup?", "This replaces the progress currently stored in this browser.", () => {
+      progress = incoming;
+      renderDashboard(); renderChapters(); changed();
+      setStatus("Backup imported");
+    });
+  } catch (err) {
+    setStatus("Could not import that JSON backup.", true);
+  }
+  event.target.value = "";
+});
+window.addEventListener("beforeunload", event => {
+  if (dirty) { event.preventDefault(); event.returnValue = ""; }
+});
+
+renderStreamSelector();
+renderFilters();
+renderDashboard();
+renderChapters();
+document.getElementById("storageNote").textContent =
+  "Progress is stored in this browser only. Export backups to move devices.";
+setStatus(dirty ? "Unsaved changes" : "Ready · saved progress loaded");
+</script>
+</body>
+</html>
